@@ -12,18 +12,14 @@ def get_response(model, chat: chat_.Chat, message: Message, username):
     chat.add_message(message, username)
     prompt = message.content
     
-    # TODO: implementar aqui contexto completo do chat
-    if rag_system and rag_system.is_dnd_question(prompt):
-        print(f"🎲 Detectada pergunta D&D de {username}: {prompt}")
-        try:
-            # Usar RAG para responder perguntas sobre D&D
-            response_text = rag_system.generate_answer(prompt)
-            chat.chat_text += f"\n\n$ Mensagem de {username}: " + prompt + "\n"
-            chat.chat_text += f"$ Mensagem de {client.user.display_name} (D&D RAG): " + response_text
-            return response_text
-        except Exception as e:
-            print(f"❌ Erro no RAG: {e}")
-            # Se RAG falhar, continuar com chat normal
+    print(f"🎲 Detectada pergunta D&D de {username}: {prompt}")
+    try:
+        # Usar RAG para responder perguntas sobre D&D
+        response_text = rag_system.generate_answer(chat, prompt)
+        return response_text
+    except Exception as e:
+        print(f"❌ Erro no RAG: {e}")
+        # Se RAG falhar, continuar com chat normal
     
     # Chat normal para outras perguntas
     # print("\nCURRENT CHAT\n", chat.chat_text, "\n\nEND CURRENT CHAT\n")

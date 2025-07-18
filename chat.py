@@ -75,19 +75,16 @@ def parse_message(message: Message):
 
 
 class Chat:
-    preinitialization = """
-    Você é um modelo de linguagem conversando num chat de Discord\n
-    As mensagens anteriores são sinalizadas com "$ Mensagem de x:" e "$ Mensagem do modelo:"\n
-    Não escreva essas sinalizações, apenas construa a próxima mensagem\n
-    Cite outros usuários utilizando @[nome-do-usuário]\n
-    Responda continuando a conversa de forma natural, continuando e contribuindo para o tópico em questão\n
-    
-    CAPACIDADES ESPECIAIS:
-    - Você tem acesso a um sistema RAG especializado em D&D 5e que responde automaticamente a perguntas sobre regras, classes, raças, magias, etc.
-    - Para outras conversas, responda naturalmente como um assistente amigável
-    
-    Agora iniciam as mensagens:\n
-    """
+    preinitialization = """Você é um modelo de linguagem conversando num chat de Discord
+As mensagens anteriores são sinalizadas com "$ Mensagem de x:" e "$ Mensagem do modelo:"
+Não escreva essas sinalizações, apenas construa a próxima mensagem
+Cite outros usuários utilizando @[nome-do-usuário]
+Responda continuando a conversa de forma natural, continuando e contribuindo para o tópico em questão
+
+CAPACIDADES ESPECIAIS:
+- Você tem acesso a um sistema RAG especializado em D&D 5e que responde automaticamente a perguntas sobre regras, classes, raças, magias, etc.
+- Para outras conversas, responda naturalmente como um assistente amigável
+"""
     chat_text = ""
 
     postinitialization = ""
@@ -104,11 +101,11 @@ class Chat:
             
     def add_message(self, message: Message, username: str):
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
-        print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
+        # print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
         self.chat_text += new_message
     
     async def RecoverHistory(self, channel: TextChannel):
-        print(f"Recovering history from channel {channel.name}")
+        # print(f"Recovering history from channel {channel.name}")
         hist = channel.history(oldest_first=True)
         hist = [mes async for mes in hist]
         for message in hist[:-1]:

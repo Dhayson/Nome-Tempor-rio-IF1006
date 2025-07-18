@@ -10,6 +10,7 @@ import re
 from typing import List, Dict, Any
 import logging
 from en_terms import dnd_dictionary_pt_en
+from chat import Chat
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -165,7 +166,7 @@ class DNDRagSystem:
         
         return results
     
-    def generate_answer(self, query: str, top_k: int = 3) -> str:
+    def generate_answer(self, chat: Chat, query: str, top_k: int = 3) -> str:
         """
         Gera resposta usando RAG com Gemini - Otimizado para Discord
         
@@ -192,26 +193,28 @@ class DNDRagSystem:
                     relevant_chunks = english_chunks
         
         # Construir contexto
-        context = "\n\n".join([f"[Regra {result['rank']}]: {result['chunk']}" 
+        context = "\n\n".join([f"[Regra {result['rank']} score {result['score']}]: {result['chunk']}" 
                               for result in relevant_chunks])
         
         # Prompt otimizado para Discord
-        prompt = f"""Você é um assistente D&D 5e respondendo no Discord. USE as regras fornecidas para responder.
-
-REGRAS D&D FORNECIDAS:
-{context}
-
-PERGUNTA: {query}
+        prompt = f"""{chat.preinitialization}
 
 INSTRUÇÕES IMPORTANTES:
+
 - SEMPRE use as regras fornecidas acima para responder
 - Responda em português brasileiro
 - Seja direto e útil para Discord
 - Se há informação relevante nas regras, USE-A na resposta
 - Organize as informações de forma clara
 
-RESPOSTA baseada nas regras fornecidas:"""
+RESPOSTA baseado nas regras fornecidas:
 
+REGRAS D&D FORNECIDAS:
+{context}
+
+Agora iniciam as mensagens:
+{chat.chat_text}{chat.postinitialization()} """
+        # print("Prompt:" , prompt)
         try:
             # Gerar resposta com Gemini
             response = self.gemini_model.generate_content(prompt)
@@ -324,7 +327,10 @@ if __name__ == "__main__":
     # Teste do sistema RAG
     rag = initialize_rag_system()
     if rag:
+        chat = Chat()
+        chat.SetName("LLM", False)
         test_query = "Quais são as características dos Anões?"
         print(f"\n🧪 Teste: {test_query}")
-        response = rag.generate_answer(test_query)
+        chat.chat_text += f"$ Mensagem de Fulaninho: {test_query}\n\n"
+        response = rag.generate_answer(chat, test_query)
         print(f"📝 Resposta: {response}")
