@@ -71,8 +71,15 @@ def parse_message(message: Message):
     return final_text
             
     
+class ChatMessage:
+    discord_message: Message
+    time: datetime.datetime
+    username: str
     
-
+    def __init__(self, msg: Message, time: datetime.datetime, username: str):
+        self.discord_message = msg
+        self.time = time
+        self.username = username
 
 class Chat:
     preinitialization = """
@@ -84,6 +91,7 @@ class Chat:
     Agora iniciam as mensagens:\n
     """
     chat_text = ""
+    messages: list[ChatMessage] = []
 
     postinitialization = ""
     def __init__(self, nome = None):
@@ -98,6 +106,7 @@ class Chat:
             self.postinitialization = lambda: "\n\n$ Mensagem do modelo: "
             
     def add_message(self, message: Message, username: str):
+        self.messages.append(ChatMessage(message, message.created_at, username))
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
         print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
         self.chat_text += new_message
