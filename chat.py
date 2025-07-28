@@ -81,6 +81,11 @@ class Chat:
     Não escreva essas sinalizações, apenas construa a próxima mensagem\n
     Cite outros usuários utilizando @[nome-do-usuário]\n
     Responda continuando a conversa de forma natural, continuando e contribuindo para o tópico em questão\n
+    
+    CAPACIDADES ESPECIAIS:
+    - Você tem acesso a um sistema RAG especializado em D&D 5e que responde automaticamente a perguntas sobre regras, classes, raças, magias, etc.
+    - Para outras conversas, responda naturalmente como um assistente amigável
+    
     Agora iniciam as mensagens:\n
     """
     chat_text = ""

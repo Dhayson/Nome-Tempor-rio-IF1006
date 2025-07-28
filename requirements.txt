@@ -1,0 +1,8 @@
+google-generativeai
+sentence-transformers
+faiss-cpu
+numpy
+python-dotenv
+langchain-text-splitters
+tiktoken 
+discord

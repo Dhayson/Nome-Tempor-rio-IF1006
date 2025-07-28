@@ -3,14 +3,31 @@ import os
 from dotenv import load_dotenv
 from discord import Intents, Client, Message
 import chat as chat_
+from rag import get_rag_system
 
 
-def get_response(model, chat: chat_.Chat, message: Message, username):
-    # Faça uma solicitação de geração de texto
-    chat.add_message(message, username)
-    # print("\nCURRENT CHAT\n", chat.chat_text, "\n\nEND CURRENT CHAT\n")
-    req = chat.preinitialization + chat.chat_text + chat.postinitialization()
+def get_response(model, chat: chat_.Chat, prompt, username):
+    # Verificar se é pergunta sobre D&D e se RAG está disponível
+    rag_system = get_rag_system()
+    
+    if rag_system and rag_system.is_dnd_question(prompt):
+        print(f"🎲 Detectada pergunta D&D de {username}: {prompt}")
+        try:
+            # Usar RAG para responder perguntas sobre D&D
+            response_text = rag_system.generate_answer(prompt)
+            chat.chat_text += f"\n\n$ Mensagem de {username}: " + prompt + "\n"
+            chat.chat_text += f"$ Mensagem de {client.user.display_name} (D&D RAG): " + response_text
+            return response_text
+        except Exception as e:
+            print(f"❌ Erro no RAG: {e}")
+            # Se RAG falhar, continuar com chat normal
+    
+    # Chat normal para outras perguntas
+    chat.chat_text += f"\n\n$ Mensagem de {username}: " + prompt + "\n"
+    print("\nCURRENT CHAT\n", chat.chat_text, "\n\nEND CURRENT CHAT\n")
+    req = chat.preinitialization + chat.chat_text + chat.postinitialization
     response = model.generate_content(req)
+    chat.chat_text += f"$ Mensagem de {client.user.display_name}: " + response.text
     return response.text
 
 
@@ -58,12 +75,12 @@ client = Client(intents=intents)
 
 
 # Message functionality
-async def respond_message(chat: chat_.Chat, message: Message, username: str):
-    if not message.content:
+async def respond_message(chat: chat_.Chat, message: Message, user_message: str, username: str):
+    if not user_message:
         print("Message none error")
     
     try:
-        response = get_response(model, chat, message, username)
+        response = get_response(model, chat, user_message, username)
         if len(response) < 2000:
             await message.channel.send(response)
         else:
@@ -74,16 +91,26 @@ async def respond_message(chat: chat_.Chat, message: Message, username: str):
                 except Exception as e:
                     print(e)
     except Exception as e:
-        print("Error in get response", e, e.__traceback__)
+        print(e)
         
 # Startup bot
 @client.event
 async def on_ready():
     print(f"Client {client.user} running!")
+    
+    # Inicializar sistema RAG D&D
+    print("🎲 Carregando sistema RAG D&D...")
+    rag_system = get_rag_system()
+    if rag_system:
+        print("✅ Sistema RAG D&D carregado com sucesso!")
+    else:
+        print("⚠️ Sistema RAG D&D não pôde ser carregado. Bot funcionará sem RAG.")
 
 # Incoming message
 @client.event
 async def on_message(message: Message):
+    if message.author == client.user:
+        return
     
     username: str = str(message.author.display_name)
     user_message: str = message.content
@@ -92,14 +119,10 @@ async def on_message(message: Message):
     my_chat = await chat_.GlobalManager.add_channel(channel)
     my_chat.SetName(client.user.display_name)
     
-    if message.author == client.user:
-        # print(f"SELF|{channel}|{username}|{message.author.id}: {user_message}")
-        my_chat.add_message(message, username)
-    elif client.user in message.mentions:
-        # print(f"CALL|{channel}|{username}|{message.author.id}: {user_message}")
-        await respond_message(my_chat, message, username)
+    print(f"{channel}|{username}|{message.author.id}: {user_message}")
+    if client.user in message.mentions:
+        await respond_message(my_chat, message, user_message, username)
     else:
-        # print(f"OTHER|{channel}|{username}|{message.author.id}: {user_message}")
-        my_chat.add_message(message, username)
+        await my_chat.add_message(message, username)
     
 client.run(token=DISCORD_BOT_TOKEN)
