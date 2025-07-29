@@ -40,14 +40,19 @@ class RpgReasoner:
                 return to_return
             for part in response.parts:
                 if part.text:
-                    to_return.insert(0, part.text)
+                    if part.text[0] in ['@']:
+                        # Não responder texto com códigos
+                        to_return.insert(0, part.text[1:])
+                    else:
+                        to_return.insert(0, part.text)
                     
                 if part.function_call:
                     match part.function_call.name:
                         case "JogarD20":
                             resultado_dado = JogarD20()
                             print(f"@JogarD20 with result {resultado_dado}")
-                            to_return.append(f"O resultado do dado D20 foi {resultado_dado}")
+                            # Dar uma mensagem de follow up com o resultado
+                            to_return.append(f"@ O resultado do dado D20 foi {resultado_dado}")
                         case _:
                             to_return = f"Function called but not implemented: {part.function_call.name}"
                             print(to_return)

@@ -86,7 +86,10 @@ async def on_ready():
 @client.event
 async def on_message(message: Message):
     username: str = str(message.author.display_name)
-    user_message: str = message.content
+    
+    if message.content == "":
+        return
+    
     channel = message.channel
     
     my_chat = await chat_.GlobalManager.add_channel(channel)
@@ -95,7 +98,8 @@ async def on_message(message: Message):
     
     my_chat.add_message(message, username)
     
-    if client.user in message.mentions:
+    # @ significa dar uma mensagem de follow up, após um comando
+    if client.user in message.mentions or message.content[0] == '@':
         await respond_message(my_chat, message, my_reasoner)
     
 client.run(token=DISCORD_BOT_TOKEN)
