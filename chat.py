@@ -44,7 +44,7 @@ def parse_message(message: Message):
     metadata = map(convert_mention, metadata)
     metadata = map(convert_role_mention, metadata)
     
-    final_text = ""
+    final_text: str = ""
     if mention_flag:
         # If the message starts with a mention
         while True:
