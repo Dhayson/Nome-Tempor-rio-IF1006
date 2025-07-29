@@ -10,7 +10,9 @@ genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 # Escolha o modelo
 model = genai.GenerativeModel('gemini-2.0-flash-lite')
 
-chat = ""
+chat = """Você ẽ um chat bot, que terã uma conversa com um usuãrio
+Agora iniciam as mensagens:
+"""
 
 while True:
     # Faça uma solicitação de geração de texto
