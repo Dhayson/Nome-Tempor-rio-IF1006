@@ -2,7 +2,7 @@ import google.generativeai as genai
 from google.generativeai import types
 import os
 from dotenv import load_dotenv
-from rpg_tools.dice import JogarD20, D20_tool
+from rpg_tools.agentic_tools.dice import JogarD20, D20_tool
 
 tools = types.Tool(function_declarations=[D20_tool])
 
