@@ -2,7 +2,7 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 from discord import Intents, Client, Message
-import chat as chat_
+import discord_tools.chat as chat_
 
 
 def get_response(model, chat: chat_.Chat, message: Message, username):

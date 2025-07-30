@@ -1,4 +1,4 @@
-from chat import ChatMessage, parse_message
+from discord_tools.chat import ChatMessage, parse_message
 import datetime
 
 LLM_NAME: str = "LLM"

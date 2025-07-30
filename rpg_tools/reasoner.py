@@ -1,6 +1,6 @@
 from enum import Enum
 from google.generativeai import types
-import chat as chat_
+import discord_tools.chat as chat_
 from rpg_tools.agentic_tools.world_history import WorldHistoryTool
 import rpg_tools.prompts as prompts
 from rpg_tools.agentic_tools.dice import JogarD20

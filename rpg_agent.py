@@ -4,7 +4,7 @@ load_dotenv()
 
 from discord import Message
 
-import chat as chat_
+import discord_tools.chat as chat_
 from rpg_tools import prompts, reasoner
 from discord_tools import dd_client, send_message, DISCORD_BOT_TOKEN
 from discord_tools.commands import COMMAND_CHARS

@@ -1,7 +1,7 @@
 
 import re
 from discord import Message
-from user_id import GlobalUserId, GlobalRoleId
+from discord_tools.user_id import GlobalUserId, GlobalRoleId
 
 def convert_mention(mention: str):
     if not re.match("<@[0-9]+>$", mention):
