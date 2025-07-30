@@ -1,14 +1,18 @@
+import os
 from dotenv import load_dotenv
+import google.generativeai as genai
+
+from llm_tools import GeminiModel
+from rpg_tools.agentic_tools import Tool_list
 # Get tokens
 load_dotenv()
 
 from discord import Message
 
 import discord_tools.chat as chat_
-from rpg_tools import prompts, reasoner
+from rpg_tools import reasoner
 from discord_tools import dd_client, send_message, DISCORD_BOT_TOKEN
 from discord_tools.commands import COMMAND_CHARS
-from llm_tools import model
 
 def get_responses(model, chat: chat_.Chat, reasoner: reasoner.RpgReasoner):
     # Faça uma solicitação de geração de texto
@@ -47,4 +51,9 @@ async def on_message(message: Message):
         await respond_message(my_chat, message, my_reasoner)
 
 
+
+GOOGLE_API_TOKEN = os.getenv("GOOGLE_API_KEY")
+# Setup llm
+genai.configure(api_key=GOOGLE_API_TOKEN)
+model = GeminiModel('gemini-2.5-flash-lite', Tool_list)
 dd_client.run(token=DISCORD_BOT_TOKEN)
