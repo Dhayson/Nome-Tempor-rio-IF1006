@@ -5,6 +5,8 @@ from rpg_tools.agentic_tools.world_history import WorldHistoryTool
 import rpg_tools.prompts as prompts
 from rpg_tools.agentic_tools.dice import JogarD20
 from rpg_tools.agentic_tools import All_tools_explanation
+from llm_tools import LanguageModel
+from discord_tools.commands import COMMAND_CHARS
 
 class RpgState(Enum):
     Initializing = 1
@@ -19,7 +21,7 @@ class RpgReasoner:
     def __init__(self):
         self.world_history = WorldHistoryTool()
     
-    def GenerateRequest(self, chat: chat_.Chat, model) -> list[str]:
+    def GenerateRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
         to_return: list[str] = []
         try:
             if self.state is RpgState.Conversation:
@@ -40,7 +42,7 @@ class RpgReasoner:
                 return to_return
             for part in response.parts:
                 if part.text:
-                    if part.text[0] in ['@']:
+                    if part.text[0] in COMMAND_CHARS:
                         # Não responder texto com códigos
                         to_return.insert(0, part.text[1:])
                     else:
@@ -53,10 +55,19 @@ class RpgReasoner:
                             print(f"@JogarD20 with result {resultado_dado}")
                             # Dar uma mensagem de follow up com o resultado
                             to_return.append(f"@ O resultado do dado D20 foi {resultado_dado}")
+                        case "InicializarRPG":
+                            self.InicializarRpg()
                         case _:
-                            to_return = f"Function called but not implemented: {part.function_call.name}"
+                            to_return.append(f"Function called but not implemented: {part.function_call.name}")
                             print(to_return)
         return to_return
+    
+    
+    def InicializarRpg(self):
+        # TODO: Mensagens e ferramentas para a inicialização
+        # TODO: Formalizar protocolo de inicialização
+        # TODO: Salvar os dados da sessão no longo prazo
+        self.state = RpgState.Initializing
     
 class ReasonerManager:
     channel_reasoner: dict
