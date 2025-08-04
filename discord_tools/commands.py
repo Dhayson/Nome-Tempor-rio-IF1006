@@ -1,1 +1,1 @@
-COMMAND_CHARS = ['@', '!']
+COMMAND_CHARS = ['@', '!', '\\']

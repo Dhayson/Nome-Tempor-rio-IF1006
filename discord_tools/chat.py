@@ -1,6 +1,7 @@
 from discord import TextChannel, Message
 import datetime
 from discord_tools.conversion import parse_message
+from discord_tools.commands import COMMAND_CHARS
   
     
 class ChatMessage:
@@ -38,6 +39,9 @@ class Chat:
             self.postinitialization = lambda: "\n\n$ Mensagem do modelo: "
             
     def add_message(self, message: Message, username: str):
+        # Não acrescentar mensagens de comandos
+        if message.content[0] in COMMAND_CHARS:
+            return
         self.messages.append(ChatMessage(message, message.created_at, username))
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
         print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
