@@ -1,7 +1,5 @@
-import random
-
-from llm_tools import LanguageModel
-import discord_tools.chat as chat_
+# TODO: corrigir problema que essa função fica sendo chamada em loop, mesmo após ter sido executada
+# Provavelmente é melhor a desabilitar durante a aventura
 
 Init_RPG_tool = {
     "name": "InicializarRPG",

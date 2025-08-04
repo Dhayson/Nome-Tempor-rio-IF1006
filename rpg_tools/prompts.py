@@ -16,9 +16,19 @@ def chatBuild(messages: list[ChatMessage]):
     final_text = f"""As mensagens anteriores são sinalizadas com [ $ Mensagem de x: ] e  [ $ Mensagem do modelo: ] terminando com $$$
 Agora seguem as mensagens:
 {chat_text}
-Fim das mensagens
 
 """
     return final_text
 
 postinit = lambda: f"\n\n$ Mensagem de {LLM_NAME} às {datetime.datetime.now()}: "
+
+postinit_alt = lambda: f"\n\nFIM DAS MENSAGENS"
+
+preinit_create_history = """Você é um modelo de linguagem conversando num chat de Discord
+Seu objetivo principal é auxiliar a gerenciar uma sessão de RPG
+Agora, você deverá criar a história do mundo com base nas informações dadas pelos usuários.
+Utilize a criatividade, visando criar uma partida de RPG engajante.
+
+"""
+
+postinit_create_history = """Agora, utilize a ferramenta para escrever o esboço inicial da história do mundo."""
