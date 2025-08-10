@@ -6,7 +6,7 @@ import os
 from rpg_tools import prompts
 
 # Tokens
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN2")
 
 # Setup bot
 intents = Intents.default()

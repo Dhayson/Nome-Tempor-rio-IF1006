@@ -44,7 +44,7 @@ class Chat:
             return
         self.messages.append(ChatMessage(message, message.created_at, username))
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
-        print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
+        # print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
         self.chat_text += new_message
     
     async def RecoverHistory(self, channel: TextChannel):

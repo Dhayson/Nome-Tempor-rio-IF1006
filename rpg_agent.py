@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 
 from llm_tools import GeminiModel
-from rpg_tools.agentic_tools import Conversation_tool_list
 # Get tokens
 load_dotenv()
 
@@ -65,5 +64,5 @@ async def on_message(message: Message):
 GOOGLE_API_TOKEN = os.getenv("GOOGLE_API_KEY")
 # Setup llm
 genai.configure(api_key=GOOGLE_API_TOKEN)
-model = GeminiModel('gemini-2.5-flash-lite', Conversation_tool_list)
+model = GeminiModel(os.getenv("MODEL"), [])
 dd_client.run(token=DISCORD_BOT_TOKEN)

@@ -1,5 +1,5 @@
-# TODO: corrigir problema que essa função fica sendo chamada em loop, mesmo após ter sido executada
-# Provavelmente é melhor a desabilitar durante a aventura
+# OBS: há problema que essa função fica sendo chamada em loop, mesmo após ter sido executada
+# Por isso, o melhor é a desabilitar durante a aventura
 
 Init_RPG_tool = {
     "name": "InicializarRPG",

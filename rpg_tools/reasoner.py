@@ -1,12 +1,12 @@
 import traceback
+import os
 from enum import Enum
 from google.generativeai import types
 import discord_tools.chat as chat_
 import rpg_tools.prompts as prompts
 from rpg_tools.agentic_tools.dice import JogarD20
 from rpg_tools.agentic_tools.rpg_init import RpgInit
-from rpg_tools.agentic_tools import Conversation_tools_explanation
-
+from rpg_tools.agentic_tools import ToolSettings
 from rpg_tools.agentic_tools.world_history import WorldHistoryTool, WorldHistoryTool_explanation, WorldHistoryTool_glm
 
 from llm_tools import LanguageModel
@@ -22,10 +22,12 @@ class RpgState(Enum):
 class RpgReasoner:
     state: RpgState = RpgState.Conversation
     world_history: WorldHistoryTool
+    tool_settings: ToolSettings
     rpg_init: RpgInit
     
     def __init__(self):
         self.world_history = WorldHistoryTool()
+        self.tool_settings = ToolSettings()
         self.rpg_init = None
     
     def GenerateRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
@@ -49,17 +51,18 @@ class RpgReasoner:
     def ConversationRequest(self, chat: chat_.Chat, model: LanguageModel):
         to_return: list[str] = []
         try:
-            req = prompts.preinit + Conversation_tools_explanation + self.world_history.GetHistory() + prompts.chatBuild(chat.messages) + prompts.postinit()
+            req = prompts.preinit + self.tool_settings.get_conversation_tools_explanation() + self.world_history.GetHistory() + prompts.chatBuild(chat.messages) + prompts.postinit()
         except Exception as e:
             print("Error in request formation", e, e.__traceback__)
             to_return.append("An internal error ocurred while generating request. Code CR1")
             
         if len(to_return) == 0:
             try:
-                response: types.GenerateContentResponse = model.generate_content(req)
+                response: types.GenerateContentResponse = model.generate_content_with_functions(req, self.tool_settings.get_tool_list())
             except Exception as e:    
-                print("Error in generation", e, e.__traceback__)
+                print("Error in generation")
                 to_return.append("An internal error ocurred while generating answer. Code CR2")
+                traceback.print_exc()
                 return to_return
             for part in response.parts:
                 if part.text:
@@ -84,7 +87,7 @@ class RpgReasoner:
         return to_return
     
     def InitializeRpg(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
-        # TODO: Mensagens e ferramentas para a inicialização
+        # OK: Mensagens e ferramentas para a inicialização
         # TODO: Formalizar protocolo de inicialização
         # TODO: Salvar os dados da sessão no longo prazo
         self.state = RpgState.Initializing
@@ -93,6 +96,9 @@ class RpgReasoner:
         
     
     def InitializingRequest(self, chat: chat_.Chat, model: LanguageModel):
+        # Remove a ferramenta de inicializar rpg, para mitigar um bug de a chamar em loop
+        self.tool_settings.remove_tool("InitRPG")
+        
         self.state = RpgState.WorldBuild
         return ["Primeiramente, diga aqui como quer que seja o mundo de RPG. Será um mundo medieval, cyberpunk, de fantasia, \
 ou uma odisseia cósmica? Escreva aqui todas as informações essenciais, que preencherei o restante."]
