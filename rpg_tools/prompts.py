@@ -22,7 +22,7 @@ Agora seguem as mensagens:
 
 postinit = lambda: f"\n\n$ Mensagem de {LLM_NAME} às {datetime.datetime.now()}: "
 
-postinit_alt = lambda: f"\n\nFIM DAS MENSAGENS"
+postinit_alt = lambda: f"\n\nFIM DAS MENSAGENS\n"
 
 preinit_create_history = """Você é um modelo de linguagem conversando num chat de Discord
 Seu objetivo principal é auxiliar a gerenciar uma sessão de RPG

@@ -29,6 +29,8 @@ class Chat:
     postinitialization = ""
     def __init__(self, nome = None):
         self.SetName(nome)
+        self.messages = []
+        self.chat_text = ""
     
     def SetName(self, nome = None, timestamp = True):
         if nome is not None:
@@ -62,11 +64,13 @@ class ChatManager:
         self.channel_chat = dict()
     
     async def add_channel(self, channel):
-        if channel in self.channel_chat.keys():
-            return self.channel_chat[channel]
+        if channel.name in self.channel_chat.keys():
+            return self.channel_chat[channel.name]
         else:
-            chat = self.channel_chat[channel] = Chat()
+            self.channel_chat[channel.name] = Chat()
+            chat = self.channel_chat[channel.name]
             await chat.RecoverHistory(channel)
-        return chat
+            print(f"Current chats: {self.channel_chat}")
+            return chat
 
 GlobalManager = ChatManager()

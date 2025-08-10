@@ -6,7 +6,8 @@ class ToolSettings:
     Explanation_tool_list = {"D20": D20_tool_explanation, "InitRPG": Init_RPG_tool_explanation}
     
     def __init__(self):
-        pass
+        self.Conversation_tool_list = {"D20": D20_tool, "InitRPG": Init_RPG_tool}
+        self.Explanation_tool_list = {"D20": D20_tool_explanation, "InitRPG": Init_RPG_tool_explanation}
     
     def get_conversation_tools_explanation(self):
         return f"Você tem acesso a algumas ferramentas, que deve chamar exatamente quando for necessãrio\n\n" + \
@@ -24,4 +25,3 @@ class ToolSettings:
         explanation = self.Explanation_tool_list.pop(key)
         return (tool, explanation)
     
-Global_tool_settings = ToolSettings()

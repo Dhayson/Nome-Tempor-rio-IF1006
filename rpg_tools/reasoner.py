@@ -20,7 +20,7 @@ class RpgState(Enum):
     WorldBuild = 5
 
 class RpgReasoner:
-    state: RpgState = RpgState.Conversation
+    state: RpgState
     world_history: WorldHistoryTool
     tool_settings: ToolSettings
     rpg_init: RpgInit
@@ -28,6 +28,7 @@ class RpgReasoner:
     def __init__(self):
         self.world_history = WorldHistoryTool()
         self.tool_settings = ToolSettings()
+        self.state = RpgState.Conversation
         self.rpg_init = None
     
     def GenerateRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
@@ -51,7 +52,11 @@ class RpgReasoner:
     def ConversationRequest(self, chat: chat_.Chat, model: LanguageModel):
         to_return: list[str] = []
         try:
-            req = prompts.preinit + self.tool_settings.get_conversation_tools_explanation() + self.world_history.GetHistory() + prompts.chatBuild(chat.messages) + prompts.postinit()
+            req = prompts.preinit + \
+                self.tool_settings.get_conversation_tools_explanation() + \
+                self.world_history.GetHistory() + \
+                prompts.chatBuild(chat.messages) + \
+                prompts.postinit()
         except Exception as e:
             print("Error in request formation", e, e.__traceback__)
             to_return.append("An internal error ocurred while generating request. Code CR1")
@@ -145,11 +150,13 @@ class ReasonerManager:
         self.channel_reasoner = dict()
     
     def add_channel(self, channel) -> RpgReasoner:
-        if channel in self.channel_reasoner.keys():
-            return self.channel_reasoner[channel]
+        if channel.name in self.channel_reasoner.keys():
+            return self.channel_reasoner[channel.name]
         else:
-            reasoner = self.channel_reasoner[channel] = RpgReasoner()
-        return reasoner
+            self.channel_reasoner[channel.name] = RpgReasoner()
+            reasoner = self.channel_reasoner[channel.name]
+            print(f"Current reasoners: {self.channel_reasoner}")
+            return reasoner
     
 GlobalReasonerManager = ReasonerManager()
     
