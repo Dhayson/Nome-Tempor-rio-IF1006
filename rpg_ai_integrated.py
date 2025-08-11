@@ -12,6 +12,8 @@ from discord import Intents, Client, Message, TextChannel
 import discord_tools.chat as chat_
 from rpg_tools.reasoner import GlobalReasonerManager
 from rag import get_rag_system
+from llm_tools import GeminiModel
+from rpg_tools.agentic_tools import ToolSettings
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -29,7 +31,10 @@ if not DISCORD_BOT_TOKEN:
 
 # Configurar Gemini
 genai.configure(api_key=GOOGLE_API_TOKEN)
-model = genai.GenerativeModel('gemini-2.0-flash-lite')
+
+# Inicializar ferramentas RPG para o modelo
+tool_settings = ToolSettings()
+model = GeminiModel('gemini-2.0-flash-lite', tool_settings.get_tool_list())
 
 # Configurar bot Discord
 intents = Intents.default()
@@ -165,8 +170,20 @@ async def on_message(message: Message):
     # Adicionar ao reasoner RPG (que agora gerencia contexto Redis)
     my_reasoner = GlobalReasonerManager.add_channel(channel)
     
-    # Verificar se o bot foi mencionado
-    if client.user in message.mentions:
+    # Debug: mostrar informações sobre menções
+    print(f"🔍 DEBUG: Bot ID: {client.user.id}")
+    print(f"🔍 DEBUG: Menções na mensagem: {[str(mention.id) for mention in message.mentions]}")
+    print(f"🔍 DEBUG: Bot mencionado? {client.user in message.mentions}")
+    
+    # Verificar se o bot foi mencionado (múltiplas formas)
+    bot_mentioned = (
+        client.user in message.mentions or  # Menção direta
+        f"<@{client.user.id}>" in message.content or  # Menção por ID
+        f"<@!{client.user.id}>" in message.content  # Menção com nickname
+    )
+    
+    if bot_mentioned:
+        print("✅ Bot foi mencionado, processando...")
         async with channel.typing():
             try:
                 # Determinar se deve usar RAG ou RPG
@@ -183,7 +200,11 @@ async def on_message(message: Message):
             except Exception as e:
                 error_msg = f"❌ Erro ao processar mensagem: {str(e)}"
                 print(error_msg)
+                import traceback
+                traceback.print_exc()
                 await channel.send(error_msg)
+    else:
+        print("❌ Bot não foi mencionado, ignorando mensagem")
 
 async def main():
     """Função principal"""

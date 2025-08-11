@@ -23,8 +23,12 @@ class GeminiModel(LanguageModel):
     
     def __init__(self, model_name: str, functions: list):
         super().__init__()
-        self.tools = types.Tool(function_declarations=functions)
-        self.model = genai.GenerativeModel(model_name, tools=[self.tools])
+        if functions and len(functions) > 0:
+            self.tools = types.Tool(function_declarations=functions)
+            self.model = genai.GenerativeModel(model_name, tools=[self.tools])
+        else:
+            self.tools = None
+            self.model = genai.GenerativeModel(model_name)
         
     def generate_content(self, req) -> types.GenerateContentResponse:
         print("DOING REQUEST")
@@ -39,10 +43,19 @@ class GeminiModel(LanguageModel):
         print(functions)
         print("FUNCTIONS DONE")
         if isinstance(functions, list):
-            functions = types.Tool(function_declarations=functions)
+            if functions and len(functions) > 0:
+                functions = types.Tool(function_declarations=functions)
+            else:
+                # Se não há ferramentas, usar generate_content normal
+                return self.model.generate_content(req)
         return self.model.generate_content(req, tools=[functions])
     
     def configure(self, model_name: str, functions: list):
-        self.tools = types.Tool(function_declarations=functions)
-        self.model = genai.GenerativeModel(model_name, tools=[self.tools])
+        # Recriar o modelo com as novas configurações usando a mesma lógica do __init__
+        if functions and len(functions) > 0:
+            self.tools = types.Tool(function_declarations=functions)
+            self.model = genai.GenerativeModel(model_name, tools=[self.tools])
+        else:
+            self.tools = None
+            self.model = genai.GenerativeModel(model_name)
     
