@@ -19,6 +19,7 @@ load_dotenv()
 # Configuração de tokens
 GOOGLE_API_TOKEN = os.getenv("GOOGLE_API_KEY")
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN2")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
 if not GOOGLE_API_TOKEN:
     raise ValueError("GOOGLE_API_KEY não encontrada nas variáveis de ambiente")
@@ -39,9 +40,12 @@ client = Client(intents=intents)
 # Sistema RAG global
 rag_system = None
 
+# Sistema de contexto Redis
+context_manager = None
+
 async def initialize_systems():
     """Inicializa todos os sistemas necessários"""
-    global rag_system
+    global rag_system, context_manager
     
     print("🚀 Inicializando RPG.AI-Gemini...")
     
@@ -52,6 +56,16 @@ async def initialize_systems():
         print("✅ Sistema RAG inicializado")
     else:
         print("⚠️ Sistema RAG não disponível")
+    
+    # Inicializar sistema de contexto Redis
+    print("🗄️ Inicializando sistema de contexto Redis...")
+    try:
+        from rpg_tools.context_manager import context_manager as cm
+        context_manager = cm
+        print("✅ Sistema de contexto Redis inicializado")
+    except Exception as e:
+        print(f"⚠️ Sistema de contexto Redis não disponível: {e}")
+        context_manager = None
     
     print("✅ Todos os sistemas inicializados!")
 
@@ -148,7 +162,7 @@ async def on_message(message: Message):
     my_chat.SetName(client.user.display_name)
     my_chat.add_message(message, username)
     
-    # Adicionar ao reasoner RPG
+    # Adicionar ao reasoner RPG (que agora gerencia contexto Redis)
     my_reasoner = GlobalReasonerManager.add_channel(channel)
     
     # Verificar se o bot foi mencionado
