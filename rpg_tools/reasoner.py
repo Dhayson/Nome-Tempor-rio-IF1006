@@ -21,6 +21,14 @@ except ImportError:
     RAG_AVAILABLE = False
     print("⚠️ Sistema RAG não disponível")
 
+# Importar sistema de contexto Redis
+try:
+    from rpg_tools.context_manager import context_manager
+    CONTEXT_AVAILABLE = True
+except ImportError:
+    CONTEXT_AVAILABLE = False
+    print("⚠️ Sistema de contexto Redis não disponível")
+
 class RpgState(Enum):
     Initializing = 1
     CharacterCreation = 2
@@ -34,12 +42,14 @@ class RpgReasoner:
     tool_settings: ToolSettings
     rpg_init: RpgInit
     rag_system: any  # Sistema RAG para consultas D&D
+    channel_id: str  # ID do canal Discord
     
-    def __init__(self):
+    def __init__(self, channel_id: str = None):
         self.world_history = WorldHistoryTool()
         self.tool_settings = ToolSettings()
         self.state = RpgState.Conversation
         self.rpg_init = None
+        self.channel_id = channel_id
         
         # Inicializar sistema RAG se disponível
         if RAG_AVAILABLE:
@@ -73,6 +83,27 @@ class RpgReasoner:
         
         return False
     
+    def _get_context_summary(self) -> str:
+        """Obtém resumo do contexto Redis para usar nos prompts"""
+        if not CONTEXT_AVAILABLE or not self.channel_id:
+            return ""
+        
+        try:
+            return context_manager.get_context_summary(self.channel_id)
+        except Exception as e:
+            print(f"Erro ao obter contexto: {e}")
+            return ""
+    
+    def _update_context(self, message: str, username: str):
+        """Atualiza o contexto Redis com uma nova mensagem"""
+        if not CONTEXT_AVAILABLE or not self.channel_id:
+            return
+        
+        try:
+            context_manager.update_context(self.channel_id, message, username)
+        except Exception as e:
+            print(f"Erro ao atualizar contexto: {e}")
+    
     def GenerateRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
         to_return: list[str] = []
         try:
@@ -99,6 +130,11 @@ class RpgReasoner:
             if chat.messages:
                 last_message = chat.messages[-1].discord_message.content
             
+            # Atualizar contexto Redis com a mensagem
+            if chat.messages:
+                username = chat.messages[-1].username
+                self._update_context(last_message, username)
+            
             # Se deve usar RAG, gerar resposta RAG
             if self._should_use_rag(last_message):
                 print("🔍 Usando sistema RAG para consulta D&D")
@@ -110,10 +146,14 @@ class RpgReasoner:
                     print(f"⚠️ Erro no RAG, usando ferramentas RPG: {e}")
                     # Fallback para ferramentas RPG
             
-            # Usar ferramentas RPG normais
+            # Obter contexto Redis para enriquecer o prompt
+            context_summary = self._get_context_summary()
+            
+            # Usar ferramentas RPG normais com contexto enriquecido
             req = prompts.preinit + \
                 self.tool_settings.get_conversation_tools_explanation() + \
                 self.world_history.GetHistory() + \
+                (f"\n📋 **CONTEXTO DA SESSÃO:**\n{context_summary}\n" if context_summary else "") + \
                 prompts.chatBuild(chat.messages) + \
                 prompts.postinit()
         except Exception as e:
@@ -156,8 +196,12 @@ class RpgReasoner:
     def ExpandHistRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
         to_return: list[str] = []
         try:
+            # Obter contexto Redis para enriquecer o prompt
+            context_summary = self._get_context_summary()
+            
             req = prompts.preinit + \
                 self.world_history.GetHistory() + \
+                (f"\n📋 **CONTEXTO DA SESSÃO:**\n{context_summary}\n" if context_summary else "") + \
                 prompts.chatBuild(chat.messages) + \
                 prompts.postinit_alt() + \
                 AddHistoryTool_explanation_alt
@@ -212,7 +256,12 @@ ou uma odisseia cósmica? Escreva aqui todas as informações essenciais, que pr
         to_return: list[str] = []
         self.state = RpgState.Conversation
         try:
-            req = prompts.preinit_create_history + WorldHistoryTool_explanation + prompts.chatBuild(chat.messages) + prompts.postinit_alt() + prompts.postinit_create_history
+            # Obter contexto Redis para enriquecer o prompt
+            context_summary = self._get_context_summary()
+            
+            req = prompts.preinit_create_history + WorldHistoryTool_explanation + \
+                  (f"\n📋 **CONTEXTO DA SESSÃO:**\n{context_summary}\n" if context_summary else "") + \
+                  prompts.chatBuild(chat.messages) + prompts.postinit_alt() + prompts.postinit_create_history
         except Exception as e:
             print("Error in request formation", e, e.__traceback__)
             to_return.append("An internal error ocurred while generating answer. CodeWB2")
@@ -254,8 +303,9 @@ class ReasonerManager:
         if channel.name in self.channel_reasoner.keys():
             return self.channel_reasoner[channel.name]
         else:
-            self.channel_reasoner[channel.name] = RpgReasoner()
-            reasoner = self.channel_reasoner[channel.name]
+            # Criar reasoner com ID do canal para contexto Redis
+            reasoner = RpgReasoner(str(channel.id))
+            self.channel_reasoner[channel.name] = reasoner
             print(f"Current reasoners: {self.channel_reasoner}")
             return reasoner
     

@@ -4,7 +4,7 @@ Teste de integração do sistema RAG D&D
 """
 
 from rag import get_rag_system
-from chat import Chat
+from discord_tools.chat import Chat
 
 def test_rag_system():
     """Testa o sistema RAG"""
