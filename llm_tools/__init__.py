@@ -38,7 +38,7 @@ class GeminiModel(LanguageModel):
         print("REQUEST DONE")
         print(functions)
         print("FUNCTIONS DONE")
-        if functions is list:
+        if isinstance(functions, list):
             functions = types.Tool(function_declarations=functions)
         return self.model.generate_content(req, tools=[functions])
     
