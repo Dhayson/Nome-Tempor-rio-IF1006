@@ -10,7 +10,7 @@ import re
 from typing import List, Dict, Any
 import logging
 from en_terms import dnd_dictionary_pt_en
-from chat import Chat
+from discord_tools.chat import Chat
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
