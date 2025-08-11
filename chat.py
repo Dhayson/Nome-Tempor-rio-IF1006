@@ -46,7 +46,6 @@ def parse_message(message: Message):
     
     final_text = ""
     if mention_flag:
-        # If the message starts with a mention
         while True:
             next1 = next(metadata, None)
             if next1:
@@ -59,19 +58,20 @@ def parse_message(message: Message):
     else:
         # If the message does not start with a mention
         while True:
-            next1 = next(other_texts, None)
+
+        while True:
+            next1 = next(metadata, None)
             if next1:
                 final_text += next1
-            next2 = next(metadata, None)
+            next2 = next(other_texts, None)
             if next2:
                 final_text += next2
             if next1 is None and next2 is None:
                 break
-    
-    return final_text
+    else:
+        # If the message does not start with a mention
+        while True:
             
-    
-    
 
 
 class Chat:
@@ -101,8 +101,7 @@ CAPACIDADES ESPECIAIS:
             
     def add_message(self, message: Message, username: str):
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
-        # print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
-        self.chat_text += new_message
+        print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
     
     async def RecoverHistory(self, channel: TextChannel):
         # print(f"Recovering history from channel {channel.name}")
