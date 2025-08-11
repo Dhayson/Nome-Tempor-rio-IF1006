@@ -16,17 +16,21 @@ from discord_tools.commands import COMMAND_CHARS
 def get_responses(model, chat: chat_.Chat, reasoner: reasoner.RpgReasoner):
     # Faça uma solicitação de geração de texto
     return reasoner.GenerateRequest(chat, model)
+
+def expand_hist(model, chat: chat_.Chat, reasoner: reasoner.RpgReasoner):
+    return reasoner.ExpandHistRequest(chat, model)
             
 # Message functionality
-async def respond_message(chat: chat_.Chat, message: Message, reasoner: reasoner.RpgReasoner):
+async def respond_message(chat: chat_.Chat, message: Message, reasoner: reasoner.RpgReasoner, func = get_responses):
     if not message.content:
         print("Message none error")
     async with message.channel.typing():
         try:
-            for response in get_responses(model, chat, reasoner):
+            for response in func(model, chat, reasoner):
                 await send_message(message.channel, response)
         except Exception as e:
             print("Error in get response", e, e.__traceback__)
+
 
 async def respond_command(chat: chat_.Chat, message: Message, reasoner: reasoner.RpgReasoner, char):
     if char == '@':
@@ -34,7 +38,17 @@ async def respond_command(chat: chat_.Chat, message: Message, reasoner: reasoner
     elif chat == '\\':
         pass
     elif char == '!':
-        await send_message(message.channel, "Comandos ainda não implementados")
+        if message.content[0:5] == "!help" or message.content[0:6] == "!ajuda":
+            await send_message(message.channel,"""\\ Esses são os comandos disponíveis:
+!expandir história: expande a história do mundo com os últimos acontecimentos
+!help ou !ajuda: envia esta mensagem
+
+Inicialize uma mensagem com \\ para ela não ser registrada pelo agente de rpg. Por exemplo, esta mensagem.
+""")
+        elif message.content[0:18] == "!expandir história":
+            await respond_message(chat, message, reasoner, expand_hist)
+        else:
+            await send_message(message.channel, "Comandos ainda não implementados")
 
 # Incoming message
 @dd_client.event
@@ -54,10 +68,10 @@ async def on_message(message: Message):
     my_chat.add_message(message, username)
     
     # @ significa dar uma mensagem de follow up, após um comando
-    if dd_client.user in message.mentions:
-        await respond_message(my_chat, message, my_reasoner)
     if message.content[0] in COMMAND_CHARS:
         await respond_command(my_chat, message, my_reasoner, message.content[0])
+    elif dd_client.user in message.mentions:
+        await respond_message(my_chat, message, my_reasoner)
 
 
 

@@ -7,7 +7,8 @@ import rpg_tools.prompts as prompts
 from rpg_tools.agentic_tools.dice import JogarD20
 from rpg_tools.agentic_tools.rpg_init import RpgInit
 from rpg_tools.agentic_tools import ToolSettings
-from rpg_tools.agentic_tools.world_history import WorldHistoryTool, WorldHistoryTool_explanation, WorldHistoryTool_glm
+from rpg_tools.agentic_tools.world_history import *
+import google.ai.generativelanguage as glm
 
 from llm_tools import LanguageModel
 from discord_tools.commands import COMMAND_CHARS
@@ -86,6 +87,47 @@ class RpgReasoner:
                             to_return.insert(0, f"@ O resultado do dado D20 foi {resultado_dado}")
                         case "InicializarRPG":
                             to_return += self.InitializeRpg(chat, model)
+                        case "ExpandirHistoria":
+                            to_return.append("História atualizada")
+                            to_return.append(self.world_history.AddHistory(**part.function_call.args))
+                        case _:
+                            to_return.insert(0, f"Function called but not implemented: {part.function_call.name}")
+                            print(to_return)
+        return to_return
+    
+    def ExpandHistRequest(self, chat: chat_.Chat, model: LanguageModel) -> list[str]:
+        to_return: list[str] = []
+        try:
+            req = prompts.preinit + \
+                self.world_history.GetHistory() + \
+                prompts.chatBuild(chat.messages) + \
+                prompts.postinit_alt() + \
+                AddHistoryTool_explanation_alt
+        except Exception as e:
+            print("Error in request formation", e, e.__traceback__)
+            to_return.append("An internal error ocurred while generating request. Code CR1")
+            
+        if len(to_return) == 0:
+            try:
+                response: types.GenerateContentResponse = model.generate_content_with_functions(req, [AddHistoryTool_glm])
+            except Exception as e:    
+                print("Error in generation")
+                to_return.append("An internal error ocurred while generating answer. Code CR2")
+                traceback.print_exc()
+                return to_return
+            for part in response.parts:
+                if part.text:
+                    if part.text[0] in COMMAND_CHARS:
+                        # Não responder texto com códigos
+                        to_return.append(part.text[1:])
+                    else:
+                        to_return.append(part.text)
+                    
+                if part.function_call:
+                    match part.function_call.name:
+                        case "ExpandirHistoria":
+                            to_return.append("História atualizada")
+                            to_return.append(self.world_history.AddHistory(**part.function_call.args))
                         case _:
                             to_return.insert(0, f"Function called but not implemented: {part.function_call.name}")
                             print(to_return)
@@ -138,6 +180,7 @@ ou uma odisseia cósmica? Escreva aqui todas as informações essenciais, que pr
                         case "InicializarHistoria":
                             to_return.append(self.world_history.WriteHistory(**part.function_call.args))
                             to_return.append(f"@ A aventura foi inicializada")
+                            # self.tool_settings.add_tool("AddHist", AddHistoryTool_glm, AddHistoryTool_explanation)
                         case _:
                             to_return.insert(0, f"Function called but not implemented: {part.function_call.name}")
                             print(to_return)
