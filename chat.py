@@ -1,95 +1,36 @@
 from discord import TextChannel, Message
-from user_id import GlobalUserId, GlobalRoleId
-import re, datetime
-
-def convert_mention(mention: str):
-    if not re.match("<@[0-9]+>$", mention):
-        return mention
-    id = int(mention[2:-1])
-    return f"@{GlobalUserId.GetUser(id).display_name}"
-
-def convert_role_mention(mention: str):
-    if not re.match("<@&[0-9]+>$", mention):
-        return mention
-    id = int(mention[3:-1])
-    return f"@role_{GlobalRoleId.GetRole(id).name}"
+import datetime
+from discord_tools.conversion import parse_message
+from discord_tools.commands import COMMAND_CHARS
+  
     
-
-def parse_message(message: Message):
-    content = message.content
-    if content is None or content == "":
-        return ""
-    mention_flag = content[0] == '<'
+class ChatMessage:
+    discord_message: Message
+    time: datetime.datetime
+    username: str
     
-    # Add users and their ids to the mapping, if at least one is missing
-    guild = message.guild
-    guild_users = []
-    if guild:
-        guild_users = list(guild.members)
-    all_users = [message.author] + message.mentions + message.channel.members + guild_users
-    all_users_ids = map(lambda x: x.id, all_users)
-    if not GlobalUserId.IdsExist(all_users_ids):
-        for user in all_users:
-            GlobalUserId.AddUserId(user, user.id)
-    
-    all_roles_ids = map(lambda x: x.id, message.guild.roles)
-    if not GlobalRoleId.IdsExist(all_roles_ids):
-        for role in message.guild.roles:
-            GlobalRoleId.AddRoleId(role, role.id)
-    
-            
-    # Parse mentions: <@id> to @display_name
-    other_texts = iter(re.split(r"<.+>", content))
-    metadata = re.findall(r"<.+>", content)
-    metadata = map(convert_mention, metadata)
-    metadata = map(convert_role_mention, metadata)
-    
-    final_text = ""
-    if mention_flag:
-        while True:
-            next1 = next(metadata, None)
-            if next1:
-                final_text += next1
-            next2 = next(other_texts, None)
-            if next2:
-                final_text += next2
-            if next1 is None and next2 is None:
-                break
-    else:
-        # If the message does not start with a mention
-        while True:
-
-        while True:
-            next1 = next(metadata, None)
-            if next1:
-                final_text += next1
-            next2 = next(other_texts, None)
-            if next2:
-                final_text += next2
-            if next1 is None and next2 is None:
-                break
-    else:
-        # If the message does not start with a mention
-        while True:
-            
-
+    def __init__(self, msg: Message, time: datetime.datetime, username: str):
+        self.discord_message = msg
+        self.time = time
+        self.username = username
 
 class Chat:
-    preinitialization = """Você é um modelo de linguagem conversando num chat de Discord
-As mensagens anteriores são sinalizadas com "$ Mensagem de x:" e "$ Mensagem do modelo:"
-Não escreva essas sinalizações, apenas construa a próxima mensagem
-Cite outros usuários utilizando @[nome-do-usuário]
-Responda continuando a conversa de forma natural, continuando e contribuindo para o tópico em questão
-
-CAPACIDADES ESPECIAIS:
-- Você tem acesso a um sistema RAG especializado em D&D 5e que responde automaticamente a perguntas sobre regras, classes, raças, magias, etc.
-- Para outras conversas, responda naturalmente como um assistente amigável
-"""
+    preinitialization = """
+    Você é um modelo de linguagem conversando num chat de Discord\n
+    As mensagens anteriores são sinalizadas com "$ Mensagem de x:" e "$ Mensagem do modelo:"\n
+    Não escreva essas sinalizações, apenas construa a próxima mensagem\n
+    Cite outros usuários utilizando @[nome-do-usuário]\n
+    Responda continuando a conversa de forma natural, continuando e contribuindo para o tópico em questão\n
+    Agora iniciam as mensagens:\n
+    """
     chat_text = ""
+    messages: list[ChatMessage] = []
 
     postinitialization = ""
     def __init__(self, nome = None):
         self.SetName(nome)
+        self.messages = []
+        self.chat_text = ""
     
     def SetName(self, nome = None, timestamp = True):
         if nome is not None:
@@ -100,11 +41,16 @@ CAPACIDADES ESPECIAIS:
             self.postinitialization = lambda: "\n\n$ Mensagem do modelo: "
             
     def add_message(self, message: Message, username: str):
+        # Não acrescentar mensagens de comandos
+        if message.content[0] in COMMAND_CHARS:
+            return
+        self.messages.append(ChatMessage(message, message.created_at, username))
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"
-        print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
+        # print(f"{message.channel}|{username}|{message.author.id}:\n", new_message)
+        self.chat_text += new_message
     
     async def RecoverHistory(self, channel: TextChannel):
-        # print(f"Recovering history from channel {channel.name}")
+        print(f"Recovering history from channel {channel.name}")
         hist = channel.history(oldest_first=True)
         hist = [mes async for mes in hist]
         for message in hist[:-1]:
@@ -118,11 +64,13 @@ class ChatManager:
         self.channel_chat = dict()
     
     async def add_channel(self, channel):
-        if channel in self.channel_chat.keys():
-            return self.channel_chat[channel]
+        if channel.name in self.channel_chat.keys():
+            return self.channel_chat[channel.name]
         else:
-            chat = self.channel_chat[channel] = Chat()
+            self.channel_chat[channel.name] = Chat()
+            chat = self.channel_chat[channel.name]
             await chat.RecoverHistory(channel)
-        return chat
+            print(f"Current chats: {self.channel_chat}")
+            return chat
 
 GlobalManager = ChatManager()
