@@ -4,6 +4,7 @@ Teste de integração do sistema RAG D&D
 """
 
 from rag import get_rag_system
+from chat import Chat
 
 def test_rag_system():
     """Testa o sistema RAG"""
@@ -39,7 +40,10 @@ def test_rag_system():
     print(f"Pergunta: {test_query}")
     
     try:
-        response = rag_system.generate_answer(test_query)
+        chat = Chat()
+        chat.SetName("LLM", False)
+        chat.chat_text += f"$ Mensagem de Fulaninho: {test_query}\n\n"
+        response = rag_system.generate_answer(chat, test_query)
         print(f"Resposta: {response}")
         print("✅ Resposta gerada com sucesso!")
         return True
