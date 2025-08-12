@@ -14,7 +14,7 @@ No Railway, configure as seguintes variáveis de ambiente:
 
 ### Obrigatórias:
 - `GOOGLE_API_KEY`: Sua chave da API do Google Gemini
-- `DISCORD_TOKEN2`: Token do seu bot Discord
+- `DISCORD_TOKEN`: Token do seu bot Discord
 
 ### Opcionais:
 - `REDIS_URL`: URL do Redis (Railway pode fornecer automaticamente)
@@ -49,7 +49,7 @@ git push
 1. Vá para a aba "Variables"
 2. Adicione as variáveis obrigatórias:
    - `GOOGLE_API_KEY`
-   - `DISCORD_TOKEN2`
+   - `DISCORD_TOKEN`
 
 ### 4. Configurar Redis (Opcional)
 1. Adicione um serviço Redis no Railway
@@ -71,7 +71,7 @@ Para verificar se o deploy funcionou:
 ## 🐛 Solução de Problemas
 
 ### Bot não responde:
-- Verifique se `DISCORD_TOKEN2` está correto
+- Verifique se `DISCORD_TOKEN` está correto
 - Confirme se o bot tem permissões no servidor
 - Verifique se `message_content` intent está habilitado
 

@@ -42,7 +42,7 @@ load_dotenv()
 
 # Tokens
 GOOGLE_API_TOKEN = os.getenv("GOOGLE_API_KEY")
-DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN2")
+DISCORD_BOT_TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Setup llm
 genai.configure(api_key=GOOGLE_API_TOKEN)
