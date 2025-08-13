@@ -33,7 +33,7 @@ async def respond_message(chat: chat_.Chat, message: Message, reasoner: reasoner
 
 
 async def respond_command(chat: chat_.Chat, message: Message, reasoner: reasoner.RpgReasoner, char):
-    if char == '@':
+    if char == '&':
         await respond_message(chat, message, reasoner)
     elif chat == '\\':
         pass

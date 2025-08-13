@@ -45,7 +45,7 @@ class Chat:
         # Não acrescentar mensagens de comandos
         if message_content[0] in  ['!', '\\']:
             return
-        elif message_content[0] in ['@']:
+        elif message_content[0] in ['&']:
             message_content = message_content[1:]
         self.messages.append(ChatMessage(message, message.created_at, username))
         new_message = f"$ Mensagem de {username} às {message.created_at}: " + parse_message(message) + "\n\n\n"

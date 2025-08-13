@@ -166,7 +166,7 @@ async def respond_message(chat: chat_.Chat, message: Message, reasoner: RpgReaso
             print("Error in get response", e, e.__traceback__)
 
 async def respond_command(chat: chat_.Chat, message: Message, reasoner: RpgReasoner, char):
-    if char == '@':
+    if char == '&':
         await respond_message(chat, message, reasoner)
     elif chat == '\\':
         pass
@@ -214,7 +214,7 @@ async def on_message(message: Message):
     
     # Verificar se o bot foi mencionado (múltiplas formas)
     bot_mentioned = (
-        message.content[0] == '@' or
+        message.content[0] == '&' or
         client.user in message.mentions or  # Menção direta
         f"<@{client.user.id}>" in message.content or  # Menção por ID
         f"<@!{client.user.id}>" in message.content  # Menção com nickname
