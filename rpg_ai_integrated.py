@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from discord import Intents, Client, Message, TextChannel
 import discord_tools.chat as chat_
-from rpg_tools.reasoner import GlobalReasonerManager
+from rpg_tools.reasoner import GlobalReasonerManager, RpgReasoner
 from rag import get_rag_system
 from llm_tools import GeminiModel
 from rpg_tools.agentic_tools import ToolSettings
+from discord_tools.commands import COMMAND_CHARS
 
 # Carregar variáveis de ambiente
 load_dotenv()
@@ -27,14 +28,14 @@ if not GOOGLE_API_TOKEN:
     raise ValueError("GOOGLE_API_KEY não encontrada nas variáveis de ambiente")
 
 if not DISCORD_BOT_TOKEN:
-    raise ValueError("DISCORD_TOKEN2 não encontrada nas variáveis de ambiente")
+    raise ValueError("DISCORD_TOKEN não encontrada nas variáveis de ambiente")
 
 # Configurar Gemini
 genai.configure(api_key=GOOGLE_API_TOKEN)
 
 # Inicializar ferramentas RPG para o modelo
 tool_settings = ToolSettings()
-model = GeminiModel('gemini-2.0-flash-lite', tool_settings.get_tool_list())
+model = GeminiModel('gemini-2.5-flash', tool_settings.get_tool_list())
 
 # Configurar bot Discord
 intents = Intents.default()
@@ -74,19 +75,19 @@ async def initialize_systems():
     
     print("✅ Todos os sistemas inicializados!")
 
-async def respond_with_rag(chat: chat_.Chat, message: Message, username: str) -> str:
+async def respond_with_rag(chat: chat_.Chat, message: Message) -> str:
     """Responde usando o sistema RAG para perguntas sobre D&D"""
     if not rag_system:
         return "❌ Sistema RAG não disponível"
     
     try:
-        response = rag_system.generate_answer(chat, message.content)
+        response = ["RESPOSTA: " + rag_system.generate_answer(chat, message.content)]
         return response
     except Exception as e:
         print(f"Erro no RAG: {e}")
         return f"❌ Erro ao consultar regras D&D: {str(e)}"
 
-async def respond_with_rpg(chat: chat_.Chat, message: Message, username: str, reasoner) -> list[str]:
+async def respond_with_rpg(chat: chat_.Chat, reasoner) -> list[str]:
     """Responde usando o agente RPG"""
     try:
         # Usar o reasoner para gerar resposta
@@ -97,6 +98,10 @@ async def respond_with_rpg(chat: chat_.Chat, message: Message, username: str, re
         return [f"❌ Erro no agente RPG: {str(e)}"]
 
 def should_use_rag(message_content: str) -> bool:
+    """Usar RAG para perguntas diretas"""
+    if not message_content[-1] == '?':
+        return False
+    
     """Determina se deve usar RAG ou agente RPG"""
     if not rag_system:
         return False
@@ -113,7 +118,7 @@ def should_use_rag(message_content: str) -> bool:
     
     return False
 
-async def send_response(channel: TextChannel, response: str):
+async def send_message(channel: TextChannel, response: str):
     """Envia resposta para o canal Discord"""
     if not response or response.strip() == "":
         return
@@ -146,12 +151,44 @@ async def on_ready():
     # Inicializar sistemas
     await initialize_systems()
 
+async def expand_hist(chat: chat_.Chat, reasoner: RpgReasoner):
+    return reasoner.ExpandHistRequest(chat, model)
+
+# Message functionality
+async def respond_message(chat: chat_.Chat, message: Message, reasoner: RpgReasoner, func = respond_with_rpg):
+    if not message.content:
+        print("Message none error")
+    async with message.channel.typing():
+        try:
+            for response in await func(chat, reasoner):
+                await send_message(message.channel, response)
+        except Exception as e:
+            print("Error in get response", e, e.__traceback__)
+
+async def respond_command(chat: chat_.Chat, message: Message, reasoner: RpgReasoner, char):
+    if char == '@':
+        await respond_message(chat, message, reasoner)
+    elif chat == '\\':
+        pass
+    elif char == '!':
+        if message.content[0:5] == "!help" or message.content[0:6] == "!ajuda":
+            await send_message(message.channel,"""\\ Esses são os comandos disponíveis:
+!expandir história: expande a história do mundo com os últimos acontecimentos
+!help ou !ajuda: envia esta mensagem
+
+Inicialize uma mensagem com \\ para ela não ser registrada pelo agente de rpg. Por exemplo, esta mensagem.
+
+Mencione o bot e finalize a mensagem com ? para perguntar sobre RPG
+""")
+        elif message.content[0:18] == "!expandir história":
+            await respond_message(chat, message, reasoner, expand_hist)
+        else:
+            await send_message(message.channel, "Comandos ainda não implementados")
+
+
 @client.event
 async def on_message(message: Message):
     """Processa mensagens recebidas"""
-    # Ignorar mensagens do próprio bot
-    if message.author == client.user:
-        return
     
     # Ignorar mensagens vazias
     if not message.content or message.content.strip() == "":
@@ -163,12 +200,12 @@ async def on_message(message: Message):
     print(f"📨 Mensagem de {username} em #{channel.name}: {message.content}")
     
     # Adicionar ao chat
-    my_chat = await chat_.GlobalManager.add_channel(channel)
+    my_chat: chat_.Chat = await chat_.GlobalManager.add_channel(channel)
     my_chat.SetName(client.user.display_name)
     my_chat.add_message(message, username)
     
     # Adicionar ao reasoner RPG (que agora gerencia contexto Redis)
-    my_reasoner = GlobalReasonerManager.add_channel(channel)
+    my_reasoner: RpgReasoner = GlobalReasonerManager.add_channel(channel)
     
     # Debug: mostrar informações sobre menções
     print(f"🔍 DEBUG: Bot ID: {client.user.id}")
@@ -177,32 +214,31 @@ async def on_message(message: Message):
     
     # Verificar se o bot foi mencionado (múltiplas formas)
     bot_mentioned = (
+        message.content[0] == '@' or
         client.user in message.mentions or  # Menção direta
         f"<@{client.user.id}>" in message.content or  # Menção por ID
         f"<@!{client.user.id}>" in message.content  # Menção com nickname
     )
     
-    if bot_mentioned:
+    if message.content[0] in COMMAND_CHARS:
+        await respond_command(my_chat, message, my_reasoner, message.content[0])
+    elif bot_mentioned:
         print("✅ Bot foi mencionado, processando...")
-        async with channel.typing():
-            try:
-                # Determinar se deve usar RAG ou RPG
-                if should_use_rag(message.content):
-                    print("🔍 Usando sistema RAG para consulta D&D")
-                    response = await respond_with_rag(my_chat, message, username)
-                    await send_response(channel, response)
-                else:
-                    print("🎲 Usando agente RPG para resposta")
-                    responses = await respond_with_rpg(my_chat, message, username, my_reasoner)
-                    for response in responses:
-                        await send_response(channel, response)
-                        
-            except Exception as e:
-                error_msg = f"❌ Erro ao processar mensagem: {str(e)}"
-                print(error_msg)
-                import traceback
-                traceback.print_exc()
-                await channel.send(error_msg)
+        try:
+            # Determinar se deve usar RAG ou RPG
+            if should_use_rag(message.content):
+                print("🔍 Usando sistema RAG para consulta D&D")
+                await respond_message(my_chat, message, message, respond_with_rag)
+            else: 
+                print("🎲 Usando agente RPG para resposta")
+                await respond_message(my_chat, message, my_reasoner)
+                    
+        except Exception as e:
+            error_msg = f"❌ Erro ao processar mensagem: {str(e)}"
+            print(error_msg)
+            import traceback
+            traceback.print_exc()
+            await channel.send(error_msg)
     else:
         print("❌ Bot não foi mencionado, ignorando mensagem")
 
